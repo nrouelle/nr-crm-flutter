@@ -22,7 +22,6 @@ class ProspectDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('${prospect.prenom} ${prospect.nom}'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
@@ -48,7 +47,7 @@ class ProspectDetailPage extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 50,
-                    backgroundColor: Colors.deepPurple,
+                    backgroundColor: const Color(0xFF023047),
                     child: Text(
                       '${prospect.prenom[0]}${prospect.nom[0]}',
                       style: const TextStyle(
@@ -82,7 +81,7 @@ class ProspectDetailPage extends StatelessWidget {
                       'Informations de contact',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.deepPurple,
+                        color: const Color(0xFF023047),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -135,7 +134,7 @@ class ProspectDetailPage extends StatelessWidget {
                       'Actions rapides',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.deepPurple,
+                        color: const Color(0xFF023047),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -210,7 +209,7 @@ class ProspectDetailPage extends StatelessWidget {
                       'Notes',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.deepPurple,
+                        color: const Color(0xFF023047),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -254,7 +253,7 @@ class ProspectDetailPage extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
-            Icon(icon, color: Colors.deepPurple, size: 24),
+            Icon(icon, color: const Color(0xFF023047), size: 24),
             const SizedBox(width: 16),
             Expanded(
               child: Column(

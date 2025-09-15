@@ -52,7 +52,6 @@ class _AddProspectPageState extends State<AddProspectPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Ajouter un Prospect'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -196,8 +195,6 @@ class _AddProspectPageState extends State<AddProspectPage> {
                     child: ElevatedButton(
                       onPressed: _saveProspect,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurple,
-                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),

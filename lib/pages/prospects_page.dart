@@ -71,7 +71,6 @@ class _ProspectsPageState extends State<ProspectsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
         actions: [
           IconButton(
@@ -92,7 +91,7 @@ class _ProspectsPageState extends State<ProspectsPage> {
               'Liste des Prospects',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Colors.deepPurple,
+                color: const Color(0xFF023047),
               ),
             ),
             const SizedBox(height: 16),
@@ -115,7 +114,7 @@ class _ProspectsPageState extends State<ProspectsPage> {
                       },
                       child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: Colors.deepPurple,
+                        backgroundColor: const Color(0xFF023047),
                         child: Text(
                           '${prospect.prenom[0]}${prospect.nom[0]}',
                           style: const TextStyle(
@@ -258,8 +257,7 @@ class _ProspectsPageState extends State<ProspectsPage> {
             });
           }
         },
-        backgroundColor: Colors.deepPurple,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add),
       ),
     );
   }

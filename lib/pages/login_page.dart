@@ -92,14 +92,14 @@ class _LoginPageState extends State<LoginPage> {
                   const Icon(
                     Icons.business_center,
                     size: 80,
-                    color: Colors.deepPurple,
+                    color: Color(0xFF023047),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'CRM Flutter',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
+                      color: const Color(0xFF023047),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -179,8 +179,6 @@ class _LoginPageState extends State<LoginPage> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _signIn,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurple,
-                        foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -219,7 +217,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: Text(
                       'Mot de passe oublié ?',
                       style: TextStyle(
-                        color: Colors.deepPurple,
+                        color: const Color(0xFF023047),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
