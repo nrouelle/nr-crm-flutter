@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart';
 import 'pages/login_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    print('Erreur d\'initialisation Firebase: $e');
+  }
+
   runApp(const MyApp());
 }
 
@@ -31,24 +40,80 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
+    return FutureBuilder(
+      future: Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      ),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
+        // Erreur d'initialisation Firebase
+        if (snapshot.hasError) {
+          return Scaffold(
             body: Center(
-              child: CircularProgressIndicator(),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Erreur d\'initialisation Firebase',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Vérifiez votre configuration Firebase',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      // Redémarrer l'app
+                      main();
+                    },
+                    child: const Text('Réessayer'),
+                  ),
+                ],
+              ),
             ),
           );
         }
 
-        if (snapshot.hasData) {
-          // User is logged in, show home page
-          return const MyHomePage(title: 'CRM Flutter');
-        } else {
-          // User is not logged in, show login page
-          return const LoginPage();
+        // Firebase en cours d'initialisation
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Initialisation...'),
+                ],
+              ),
+            ),
+          );
         }
+
+        // Firebase initialisé, vérifier l'authentification
+        return StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            if (snapshot.hasData) {
+              // User is logged in, show home page
+              return const MyHomePage(title: 'CRM Flutter');
+            } else {
+              // User is not logged in, show login page
+              return const LoginPage();
+            }
+          },
+        );
       },
     );
   }
