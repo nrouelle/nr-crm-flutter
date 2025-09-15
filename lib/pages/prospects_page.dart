@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'add_prospect_page.dart';
+import 'prospect_detail_page.dart';
 
 class Prospect {
   final String nom;
   final String prenom;
   final String email;
   final String telephone;
+  final String? linkedin;
 
   Prospect({
     required this.nom,
     required this.prenom,
     required this.email,
     required this.telephone,
+    this.linkedin,
   });
 }
 
@@ -31,30 +35,35 @@ class _ProspectsPageState extends State<ProspectsPage> {
       prenom: 'Jean',
       email: 'jean.dupont@email.com',
       telephone: '+33 6 12 34 56 78',
+      linkedin: 'https://linkedin.com/in/jean-dupont',
     ),
     Prospect(
       nom: 'Martin',
       prenom: 'Sophie',
       email: 'sophie.martin@entreprise.fr',
       telephone: '+33 6 23 45 67 89',
+      linkedin: 'https://linkedin.com/in/sophie-martin',
     ),
     Prospect(
       nom: 'Leroy',
       prenom: 'Pierre',
       email: 'p.leroy@company.com',
       telephone: '+33 6 34 56 78 90',
+      linkedin: 'https://linkedin.com/in/pierre-leroy',
     ),
     Prospect(
       nom: 'Dubois',
       prenom: 'Marie',
       email: 'marie.dubois@business.fr',
       telephone: '+33 6 45 67 89 01',
+      linkedin: 'https://linkedin.com/in/marie-dubois',
     ),
     Prospect(
       nom: 'Moreau',
       prenom: 'Antoine',
       email: 'antoine.moreau@startup.io',
       telephone: '+33 6 56 78 90 12',
+      linkedin: 'https://linkedin.com/in/antoine-moreau',
     ),
   ];
 
@@ -95,7 +104,16 @@ class _ProspectsPageState extends State<ProspectsPage> {
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
                     elevation: 2,
-                    child: ListTile(
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProspectDetailPage(prospect: prospect),
+                          ),
+                        );
+                      },
+                      child: ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Colors.deepPurple,
                         child: Text(
@@ -210,6 +228,7 @@ class _ProspectsPageState extends State<ProspectsPage> {
                         ],
                       ),
                     ),
+                      ),
                   );
                 },
               ),
@@ -218,12 +237,26 @@ class _ProspectsPageState extends State<ProspectsPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Ajouter un nouveau prospect'),
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AddProspectPage(),
             ),
           );
+
+          if (result != null) {
+            // TODO: Ajouter le nouveau prospect à la liste
+            setState(() {
+              prospects.add(Prospect(
+                nom: result['nom'],
+                prenom: result['prenom'],
+                email: result['email'],
+                telephone: result['telephone'],
+                linkedin: result['linkedin'].isEmpty ? null : result['linkedin'],
+              ));
+            });
+          }
         },
         backgroundColor: Colors.deepPurple,
         child: const Icon(Icons.add, color: Colors.white),
