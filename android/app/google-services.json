@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "376939281803",
+    "project_id": "my-crm-f9e54",
+    "storage_bucket": "my-crm-f9e54.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:376939281803:android:d46db4b7e4f2c4e5f3c38e",
+        "android_client_info": {
+          "package_name": "com.rouelleconsulting.crm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-dyFsSkTgCQG88F2GF5GUQbIYOvqOXw4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
