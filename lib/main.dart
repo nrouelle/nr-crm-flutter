@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'pages/login_page.dart';
+import 'pages/prospects_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -106,8 +107,8 @@ class AuthWrapper extends StatelessWidget {
             }
 
             if (snapshot.hasData) {
-              // User is logged in, show home page
-              return const MyHomePage(title: 'CRM Flutter');
+              // User is logged in, show prospects page
+              return const ProspectsPage(title: 'CRM Flutter');
             } else {
               // User is not logged in, show login page
               return const LoginPage();
