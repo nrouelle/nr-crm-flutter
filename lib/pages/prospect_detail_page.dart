@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'prospects_page.dart';
+import '../models/prospect.dart';
 
 class ProspectDetailPage extends StatelessWidget {
   final Prospect prospect;
@@ -21,7 +21,7 @@ class ProspectDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${prospect.prenom} ${prospect.nom}'),
+        title: Text(prospect.nomComplet),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
@@ -59,7 +59,7 @@ class ProspectDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '${prospect.prenom} ${prospect.nom}',
+                    prospect.nomComplet,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -149,7 +149,7 @@ class ProspectDetailPage extends StatelessWidget {
                             onPressed: () {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Appel vers ${prospect.prenom} ${prospect.nom}'),
+                                  content: Text('Appel vers ${prospect.nomComplet}'),
                                 ),
                               );
                             },
@@ -165,7 +165,7 @@ class ProspectDetailPage extends StatelessWidget {
                             onPressed: () {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Email à ${prospect.prenom} ${prospect.nom}'),
+                                  content: Text('Email à ${prospect.nomComplet}'),
                                 ),
                               );
                             },

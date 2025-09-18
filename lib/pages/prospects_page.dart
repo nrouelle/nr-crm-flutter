@@ -1,23 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../models/prospect.dart';
+import '../services/prospect_service.dart';
 import 'add_prospect_page.dart';
 import 'prospect_detail_page.dart';
-
-class Prospect {
-  final String nom;
-  final String prenom;
-  final String email;
-  final String telephone;
-  final String? linkedin;
-
-  Prospect({
-    required this.nom,
-    required this.prenom,
-    required this.email,
-    required this.telephone,
-    this.linkedin,
-  });
-}
 
 class ProspectsPage extends StatefulWidget {
   const ProspectsPage({super.key, required this.title});
@@ -29,43 +15,14 @@ class ProspectsPage extends StatefulWidget {
 }
 
 class _ProspectsPageState extends State<ProspectsPage> {
-  final List<Prospect> prospects = [
-    Prospect(
-      nom: 'Dupont',
-      prenom: 'Jean',
-      email: 'jean.dupont@email.com',
-      telephone: '+33 6 12 34 56 78',
-      linkedin: 'https://linkedin.com/in/jean-dupont',
-    ),
-    Prospect(
-      nom: 'Martin',
-      prenom: 'Sophie',
-      email: 'sophie.martin@entreprise.fr',
-      telephone: '+33 6 23 45 67 89',
-      linkedin: 'https://linkedin.com/in/sophie-martin',
-    ),
-    Prospect(
-      nom: 'Leroy',
-      prenom: 'Pierre',
-      email: 'p.leroy@company.com',
-      telephone: '+33 6 34 56 78 90',
-      linkedin: 'https://linkedin.com/in/pierre-leroy',
-    ),
-    Prospect(
-      nom: 'Dubois',
-      prenom: 'Marie',
-      email: 'marie.dubois@business.fr',
-      telephone: '+33 6 45 67 89 01',
-      linkedin: 'https://linkedin.com/in/marie-dubois',
-    ),
-    Prospect(
-      nom: 'Moreau',
-      prenom: 'Antoine',
-      email: 'antoine.moreau@startup.io',
-      telephone: '+33 6 56 78 90 12',
-      linkedin: 'https://linkedin.com/in/antoine-moreau',
-    ),
-  ];
+  final ProspectService _prospectService = ProspectService();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialiser les données de test si nécessaire
+    _prospectService.initialiserDonneesTest();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,138 +53,201 @@ class _ProspectsPageState extends State<ProspectsPage> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: ListView.builder(
-                itemCount: prospects.length,
-                itemBuilder: (context, index) {
-                  final prospect = prospects[index];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    elevation: 2,
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ProspectDetailPage(prospect: prospect),
-                          ),
-                        );
-                      },
-                      child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: const Color(0xFF023047),
-                        child: Text(
-                          '${prospect.prenom[0]}${prospect.nom[0]}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      title: Text(
-                        '${prospect.prenom} ${prospect.nom}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              child: StreamBuilder<List<Prospect>>(
+                stream: _prospectService.obtenirProspects(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.email_outlined,
-                                size: 16,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  prospect.email,
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                              ),
-                            ],
+                          const Icon(Icons.error, size: 64, color: Colors.red),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Erreur lors du chargement',
+                            style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.phone_outlined,
-                                size: 16,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                prospect.telephone,
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            ],
+                          const SizedBox(height: 8),
+                          Text(
+                            snapshot.error.toString(),
+                            style: TextStyle(color: Colors.grey[600]),
+                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),
-                      trailing: PopupMenuButton<String>(
-                        onSelected: (value) {
-                          switch (value) {
-                            case 'appeler':
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Appel vers ${prospect.prenom} ${prospect.nom}'),
-                                ),
-                              );
-                              break;
-                            case 'email':
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Email à ${prospect.prenom} ${prospect.nom}'),
-                                ),
-                              );
-                              break;
-                            case 'modifier':
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Modifier ${prospect.prenom} ${prospect.nom}'),
-                                ),
-                              );
-                              break;
-                          }
-                        },
-                        itemBuilder: (BuildContext context) => [
-                          const PopupMenuItem<String>(
-                            value: 'appeler',
-                            child: Row(
-                              children: [
-                                Icon(Icons.phone, size: 20),
-                                SizedBox(width: 8),
-                                Text('Appeler'),
-                              ],
+                    );
+                  }
+
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+
+                  final prospects = snapshot.data ?? [];
+
+                  if (prospects.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.person_add_outlined,
+                            size: 64,
+                            color: Color(0xFF023047),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Aucun prospect',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: const Color(0xFF023047),
                             ),
                           ),
-                          const PopupMenuItem<String>(
-                            value: 'email',
-                            child: Row(
-                              children: [
-                                Icon(Icons.email, size: 20),
-                                SizedBox(width: 8),
-                                Text('Envoyer un email'),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuItem<String>(
-                            value: 'modifier',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit, size: 20),
-                                SizedBox(width: 8),
-                                Text('Modifier'),
-                              ],
-                            ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Ajoutez votre premier prospect en touchant le bouton +',
+                            style: TextStyle(color: Colors.grey[600]),
+                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),
-                    ),
-                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    itemCount: prospects.length,
+                    itemBuilder: (context, index) {
+                      final prospect = prospects[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        elevation: 2,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProspectDetailPage(prospect: prospect),
+                              ),
+                            );
+                          },
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(0xFF023047),
+                              child: Text(
+                                prospect.initiales,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              prospect.nomComplet,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.email_outlined,
+                                      size: 16,
+                                      color: Colors.grey,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        prospect.email,
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.phone_outlined,
+                                      size: 16,
+                                      color: Colors.grey,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      prospect.telephone,
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            trailing: PopupMenuButton<String>(
+                              onSelected: (value) {
+                                switch (value) {
+                                  case 'appeler':
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Appel vers ${prospect.nomComplet}'),
+                                      ),
+                                    );
+                                    break;
+                                  case 'email':
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Email à ${prospect.nomComplet}'),
+                                      ),
+                                    );
+                                    break;
+                                  case 'modifier':
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Modifier ${prospect.nomComplet}'),
+                                      ),
+                                    );
+                                    break;
+                                }
+                              },
+                              itemBuilder: (BuildContext context) => [
+                                const PopupMenuItem<String>(
+                                  value: 'appeler',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.phone, size: 20),
+                                      SizedBox(width: 8),
+                                      Text('Appeler'),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem<String>(
+                                  value: 'email',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.email, size: 20),
+                                      SizedBox(width: 8),
+                                      Text('Envoyer un email'),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem<String>(
+                                  value: 'modifier',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit, size: 20),
+                                      SizedBox(width: 8),
+                                      Text('Modifier'),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -237,25 +257,13 @@ class _ProspectsPageState extends State<ProspectsPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          final result = await Navigator.push(
+          await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => const AddProspectPage(),
             ),
           );
-
-          if (result != null) {
-            // TODO: Ajouter le nouveau prospect à la liste
-            setState(() {
-              prospects.add(Prospect(
-                nom: result['nom'],
-                prenom: result['prenom'],
-                email: result['email'],
-                telephone: result['telephone'],
-                linkedin: result['linkedin'].isEmpty ? null : result['linkedin'],
-              ));
-            });
-          }
+          // Le résultat est maintenant géré directement dans AddProspectPage
         },
         child: const Icon(Icons.add),
       ),

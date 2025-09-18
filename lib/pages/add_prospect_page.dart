@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../models/prospect.dart';
+import '../services/prospect_service.dart';
 
 class AddProspectPage extends StatefulWidget {
   const AddProspectPage({super.key});
@@ -25,25 +27,41 @@ class _AddProspectPageState extends State<AddProspectPage> {
     super.dispose();
   }
 
-  void _saveProspect() {
+  Future<void> _saveProspect() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement saving prospect
-      final prospectData = {
-        'nom': _nomController.text.trim(),
-        'prenom': _prenomController.text.trim(),
-        'email': _emailController.text.trim(),
-        'telephone': _telephoneController.text.trim(),
-        'linkedin': _linkedinController.text.trim(),
-      };
+      try {
+        final prospect = Prospect(
+          nom: _nomController.text.trim(),
+          prenom: _prenomController.text.trim(),
+          email: _emailController.text.trim(),
+          telephone: _telephoneController.text.trim(),
+          linkedin: _linkedinController.text.trim().isEmpty
+              ? null
+              : _linkedinController.text.trim(),
+        );
 
-      Navigator.pop(context, prospectData);
+        final prospectService = ProspectService();
+        await prospectService.ajouterProspect(prospect);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Prospect ajouté avec succès'),
-          backgroundColor: Colors.green,
-        ),
-      );
+        if (mounted) {
+          Navigator.pop(context, true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Prospect ajouté avec succès'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur lors de l\'ajout: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
