@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read and write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Prospects collection under user - authenticated users can read/write their own prospects
+      match /prospects/{prospectId} {
+        allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Companies collection under user - authenticated users can read/write their own companies
+      match /companies/{companyId} {
+        allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Default rule: deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
