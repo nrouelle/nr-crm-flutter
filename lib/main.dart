@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart';
 import 'pages/login_page.dart';
 import 'pages/prospects_page.dart';
 import 'utils/app_logger.dart';
+import 'providers/auth_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  runApp(
+    ProviderScope(
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -64,11 +69,11 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends ConsumerWidget {
   const AuthWrapper({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return FutureBuilder(
       future: Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
@@ -128,35 +133,46 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        // Firebase initialisé, vérifier l'authentification
+        // Firebase initialisé, vérifier l'authentification avec Riverpod
         AppLogger.info('Firebase initialisé avec succès');
-        return StreamBuilder<User?>(
-          stream: FirebaseAuth.instance.authStateChanges(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              AppLogger.debug('Vérification de l\'état d\'authentification...');
-              return const Scaffold(
-                body: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
+        final authState = ref.watch(authStateProvider);
 
-            if (snapshot.hasError) {
-              AppLogger.error(
-                'Erreur lors de la vérification d\'authentification',
-                snapshot.error,
-                snapshot.stackTrace,
-              );
-            }
-
-            if (snapshot.hasData) {
-              AppLogger.info('Utilisateur connecté: ${snapshot.data?.email}');
+        return authState.when(
+          data: (user) {
+            if (user != null) {
+              AppLogger.info('Utilisateur connecté: ${user.email}');
               return const ProspectsPage(title: 'CRM Flutter');
             } else {
               AppLogger.info('Utilisateur non connecté, redirection vers login');
               return const LoginPage();
             }
+          },
+          loading: () {
+            AppLogger.debug('Vérification de l\'état d\'authentification...');
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          },
+          error: (error, stackTrace) {
+            AppLogger.error(
+              'Erreur lors de la vérification d\'authentification',
+              error,
+              stackTrace,
+            );
+            return const Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error, size: 64, color: Colors.red),
+                    SizedBox(height: 16),
+                    Text('Erreur d\'authentification'),
+                  ],
+                ),
+              ),
+            );
           },
         );
       },

@@ -43,6 +43,9 @@ dependencies:
   # Logging
   logger: ^2.0.2
 
+  # State management
+  flutter_riverpod: ^2.4.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

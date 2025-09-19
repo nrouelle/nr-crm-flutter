@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
@@ -25,52 +25,33 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    await ref.read(authNotifierProvider.notifier).signInWithEmailPassword(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
 
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-    } on FirebaseAuthException catch (e) {
+    final authState = ref.read(authNotifierProvider);
+    if (authState.hasError && mounted) {
       String message = 'Une erreur s\'est produite';
 
-      switch (e.code) {
-        case 'user-not-found':
-          message = 'Aucun utilisateur trouvé avec cet email';
-          break;
-        case 'wrong-password':
-          message = 'Mot de passe incorrect';
-          break;
-        case 'invalid-email':
-          message = 'Email invalide';
-          break;
-        case 'user-disabled':
-          message = 'Ce compte a été désactivé';
-          break;
-        case 'too-many-requests':
-          message = 'Trop de tentatives. Réessayez plus tard';
-          break;
-        default:
-          message = e.message ?? 'Erreur de connexion';
+      if (authState.error.toString().contains('user-not-found')) {
+        message = 'Aucun utilisateur trouvé avec cet email';
+      } else if (authState.error.toString().contains('wrong-password')) {
+        message = 'Mot de passe incorrect';
+      } else if (authState.error.toString().contains('invalid-email')) {
+        message = 'Email invalide';
+      } else if (authState.error.toString().contains('user-disabled')) {
+        message = 'Ce compte a été désactivé';
+      } else if (authState.error.toString().contains('too-many-requests')) {
+        message = 'Trop de tentatives. Réessayez plus tard';
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -177,14 +158,14 @@ class _LoginPageState extends State<LoginPage> {
                   SizedBox(
                     height: 48,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _signIn,
+                      onPressed: ref.watch(authNotifierProvider).isLoading ? null : _signIn,
                       style: ElevatedButton.styleFrom(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         elevation: 2,
                       ),
-                      child: _isLoading
+                      child: ref.watch(authNotifierProvider).isLoading
                           ? const SizedBox(
                               width: 20,
                               height: 20,
