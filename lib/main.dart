@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'pages/login_page.dart';
 import 'pages/prospects_page.dart';
+import 'utils/app_logger.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,6 +76,11 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, snapshot) {
         // Erreur d'initialisation Firebase
         if (snapshot.hasError) {
+          AppLogger.error(
+            'Erreur d\'initialisation Firebase',
+            snapshot.error,
+            snapshot.stackTrace,
+          );
           return Scaffold(
             body: Center(
               child: Column(
@@ -94,7 +100,7 @@ class AuthWrapper extends StatelessWidget {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      // Redémarrer l'initialisation Firebase
+                      AppLogger.info('Tentative de redémarrage de l\'application');
                       // Force un rebuild du widget
                     },
                     child: const Text('Réessayer'),
@@ -107,6 +113,7 @@ class AuthWrapper extends StatelessWidget {
 
         // Firebase en cours d'initialisation
         if (snapshot.connectionState == ConnectionState.waiting) {
+          AppLogger.info('Initialisation Firebase en cours...');
           return const Scaffold(
             body: Center(
               child: Column(
@@ -122,10 +129,12 @@ class AuthWrapper extends StatelessWidget {
         }
 
         // Firebase initialisé, vérifier l'authentification
+        AppLogger.info('Firebase initialisé avec succès');
         return StreamBuilder<User?>(
           stream: FirebaseAuth.instance.authStateChanges(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
+              AppLogger.debug('Vérification de l\'état d\'authentification...');
               return const Scaffold(
                 body: Center(
                   child: CircularProgressIndicator(),
@@ -133,11 +142,19 @@ class AuthWrapper extends StatelessWidget {
               );
             }
 
+            if (snapshot.hasError) {
+              AppLogger.error(
+                'Erreur lors de la vérification d\'authentification',
+                snapshot.error,
+                snapshot.stackTrace,
+              );
+            }
+
             if (snapshot.hasData) {
-              // User is logged in, show prospects page
+              AppLogger.info('Utilisateur connecté: ${snapshot.data?.email}');
               return const ProspectsPage(title: 'CRM Flutter');
             } else {
-              // User is not logged in, show login page
+              AppLogger.info('Utilisateur non connecté, redirection vers login');
               return const LoginPage();
             }
           },

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/prospect.dart';
+import '../utils/app_logger.dart';
 
 class ProspectService {
   static const String _collection = 'prospects';
@@ -12,6 +13,7 @@ class ProspectService {
   CollectionReference<Map<String, dynamic>> get _prospectsCollection {
     final userId = _auth.currentUser?.uid;
     if (userId == null) {
+      AppLogger.error('Tentative d\'accès aux prospects sans utilisateur connecté');
       throw Exception('Utilisateur non connecté');
     }
     return _firestore
@@ -23,9 +25,12 @@ class ProspectService {
   // Ajouter un nouveau prospect
   Future<String> ajouterProspect(Prospect prospect) async {
     try {
+      AppLogger.info('Ajout d\'un nouveau prospect: ${prospect.nomComplet}');
       final docRef = await _prospectsCollection.add(prospect.toFirestore());
+      AppLogger.info('Prospect ajouté avec succès, ID: ${docRef.id}');
       return docRef.id;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.error('Erreur lors de l\'ajout du prospect', e, stackTrace);
       throw Exception('Erreur lors de l\'ajout du prospect: $e');
     }
   }
@@ -43,12 +48,17 @@ class ProspectService {
   // Récupérer un prospect par ID
   Future<Prospect?> obtenirProspectParId(String id) async {
     try {
+      AppLogger.debug('Récupération du prospect avec ID: $id');
       final doc = await _prospectsCollection.doc(id).get();
       if (doc.exists) {
-        return Prospect.fromMap(doc.data()!, doc.id);
+        final prospect = Prospect.fromMap(doc.data()!, doc.id);
+        AppLogger.debug('Prospect trouvé: ${prospect.nomComplet}');
+        return prospect;
       }
+      AppLogger.warning('Aucun prospect trouvé avec l\'ID: $id');
       return null;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.error('Erreur lors de la récupération du prospect', e, stackTrace);
       throw Exception('Erreur lors de la récupération du prospect: $e');
     }
   }
@@ -56,10 +66,12 @@ class ProspectService {
   // Modifier un prospect
   Future<void> modifierProspect(Prospect prospect) async {
     if (prospect.id == null) {
+      AppLogger.error('Tentative de modification d\'un prospect sans ID');
       throw Exception('ID du prospect requis pour la modification');
     }
 
     try {
+      AppLogger.info('Modification du prospect: ${prospect.nomComplet} (${prospect.id})');
       final prospectModifie = prospect.copyWith(
         dateModification: DateTime.now(),
       );
@@ -67,7 +79,9 @@ class ProspectService {
       await _prospectsCollection
           .doc(prospect.id)
           .update(prospectModifie.toFirestore());
-    } catch (e) {
+      AppLogger.info('Prospect modifié avec succès');
+    } catch (e, stackTrace) {
+      AppLogger.error('Erreur lors de la modification du prospect', e, stackTrace);
       throw Exception('Erreur lors de la modification du prospect: $e');
     }
   }
@@ -75,8 +89,11 @@ class ProspectService {
   // Supprimer un prospect
   Future<void> supprimerProspect(String id) async {
     try {
+      AppLogger.info('Suppression du prospect avec ID: $id');
       await _prospectsCollection.doc(id).delete();
-    } catch (e) {
+      AppLogger.info('Prospect supprimé avec succès');
+    } catch (e, stackTrace) {
+      AppLogger.error('Erreur lors de la suppression du prospect', e, stackTrace);
       throw Exception('Erreur lors de la suppression du prospect: $e');
     }
   }
@@ -84,24 +101,33 @@ class ProspectService {
   // Rechercher des prospects
   Stream<List<Prospect>> rechercherProspects(String terme) {
     final termeMinuscule = terme.toLowerCase();
+    AppLogger.debug('Recherche de prospects avec le terme: "$terme"');
 
     return _prospectsCollection
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Prospect.fromMap(doc.data(), doc.id))
-            .where((prospect) =>
-                prospect.nom.toLowerCase().contains(termeMinuscule) ||
-                prospect.prenom.toLowerCase().contains(termeMinuscule) ||
-                prospect.email.toLowerCase().contains(termeMinuscule))
-            .toList());
+        .map((snapshot) {
+          final results = snapshot.docs
+              .map((doc) => Prospect.fromMap(doc.data(), doc.id))
+              .where((prospect) =>
+                  prospect.nom.toLowerCase().contains(termeMinuscule) ||
+                  prospect.prenom.toLowerCase().contains(termeMinuscule) ||
+                  prospect.email.toLowerCase().contains(termeMinuscule))
+              .toList();
+          AppLogger.debug('${results.length} prospect(s) trouvé(s) pour "$terme"');
+          return results;
+        });
   }
 
   // Compter le nombre de prospects
   Future<int> compterProspects() async {
     try {
+      AppLogger.debug('Comptage du nombre de prospects');
       final snapshot = await _prospectsCollection.count().get();
-      return snapshot.count ?? 0;
-    } catch (e) {
+      final count = snapshot.count ?? 0;
+      AppLogger.debug('Nombre total de prospects: $count');
+      return count;
+    } catch (e, stackTrace) {
+      AppLogger.error('Erreur lors du comptage des prospects', e, stackTrace);
       throw Exception('Erreur lors du comptage des prospects: $e');
     }
   }
@@ -109,8 +135,10 @@ class ProspectService {
   // Initialiser avec des données de test (optionnel)
   Future<void> initialiserDonneesTest() async {
     try {
+      AppLogger.info('Vérification de l\'initialisation des données de test');
       final snapshot = await _prospectsCollection.limit(1).get();
       if (snapshot.docs.isEmpty) {
+        AppLogger.info('Collection vide, ajout des données de test');
         // Ajouter des prospects de test si la collection est vide
         final prospectsTest = [
           Prospect(
@@ -153,10 +181,13 @@ class ProspectService {
         for (final prospect in prospectsTest) {
           await ajouterProspect(prospect);
         }
+        AppLogger.info('${prospectsTest.length} prospects de test ajoutés avec succès');
+      } else {
+        AppLogger.info('Données de test déjà présentes, aucune action nécessaire');
       }
     } catch (e) {
       // Ignorer les erreurs d'initialisation
-      print('Erreur lors de l\'initialisation des données de test: $e');
+      AppLogger.warning('Erreur lors de l\'initialisation des données de test', e);
     }
   }
 }
