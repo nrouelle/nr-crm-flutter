@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/validation_utils.dart';
+import '../utils/sanitization_utils.dart';
 
 class Prospect {
   final String? id;
@@ -22,6 +24,72 @@ class Prospect {
   })  : dateCreation = dateCreation ?? DateTime.now(),
         dateModification = dateModification ?? DateTime.now();
 
+  // Factory avec validation et sanitisation
+  factory Prospect.create({
+    String? id,
+    required String nom,
+    required String prenom,
+    required String email,
+    required String telephone,
+    String? linkedin,
+    DateTime? dateCreation,
+    DateTime? dateModification,
+  }) {
+    // Sanitiser les données d'entrée
+    final sanitizedData = SanitizationUtils.sanitizeProspectData(
+      nom: nom,
+      prenom: prenom,
+      email: email,
+      telephone: telephone,
+      linkedin: linkedin,
+    );
+
+    // Valider les données sanitisées
+    final nomError = ValidationUtils.validateName(sanitizedData['nom'], 'nom');
+    if (nomError != null) {
+      throw ArgumentError('Nom invalide: $nomError');
+    }
+
+    final prenomError = ValidationUtils.validateName(sanitizedData['prenom'], 'prénom');
+    if (prenomError != null) {
+      throw ArgumentError('Prénom invalide: $prenomError');
+    }
+
+    final emailError = ValidationUtils.validateEmail(sanitizedData['email']);
+    if (emailError != null) {
+      throw ArgumentError('Email invalide: $emailError');
+    }
+
+    final phoneError = ValidationUtils.validatePhone(sanitizedData['telephone']);
+    if (phoneError != null) {
+      throw ArgumentError('Téléphone invalide: $phoneError');
+    }
+
+    if (sanitizedData['linkedin'] != null && sanitizedData['linkedin']!.isNotEmpty) {
+      final linkedinError = ValidationUtils.validateLinkedIn(sanitizedData['linkedin']);
+      if (linkedinError != null) {
+        throw ArgumentError('LinkedIn invalide: $linkedinError');
+      }
+    }
+
+    // Normaliser les données
+    final normalizedNom = ValidationUtils.normalizeName(sanitizedData['nom']!);
+    final normalizedPrenom = ValidationUtils.normalizeName(sanitizedData['prenom']!);
+    final normalizedEmail = ValidationUtils.normalizeEmail(sanitizedData['email']!);
+    final normalizedPhone = ValidationUtils.normalizePhoneNumber(sanitizedData['telephone']!);
+
+    return Prospect(
+      id: id,
+      nom: normalizedNom,
+      prenom: normalizedPrenom,
+      email: normalizedEmail,
+      telephone: normalizedPhone,
+      linkedin: sanitizedData['linkedin'],
+      dateCreation: dateCreation,
+      dateModification: dateModification,
+    );
+  }
+
   // Conversion vers Map pour Firestore
   Map<String, dynamic> toFirestore() {
     return {
@@ -35,30 +103,45 @@ class Prospect {
     };
   }
 
-  // Création depuis Firestore DocumentSnapshot
+  // Création depuis Firestore DocumentSnapshot avec sanitisation
   factory Prospect.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+
+    // Sanitiser les données venant de Firestore
+    final nom = SanitizationUtils.sanitizeName(data['nom'] ?? '');
+    final prenom = SanitizationUtils.sanitizeName(data['prenom'] ?? '');
+    final email = SanitizationUtils.sanitizeEmail(data['email'] ?? '');
+    final telephone = SanitizationUtils.sanitizePhoneNumber(data['telephone'] ?? '');
+    final linkedin = data['linkedin'] != null ? SanitizationUtils.sanitizeUrl(data['linkedin']) : null;
+
     return Prospect(
       id: doc.id,
-      nom: data['nom'] ?? '',
-      prenom: data['prenom'] ?? '',
-      email: data['email'] ?? '',
-      telephone: data['telephone'] ?? '',
-      linkedin: data['linkedin'],
+      nom: nom,
+      prenom: prenom,
+      email: email,
+      telephone: telephone,
+      linkedin: linkedin,
       dateCreation: (data['dateCreation'] as Timestamp?)?.toDate() ?? DateTime.now(),
       dateModification: (data['dateModification'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 
-  // Création depuis Map
+  // Création depuis Map avec sanitisation
   factory Prospect.fromMap(Map<String, dynamic> data, String id) {
+    // Sanitiser les données venant de la Map
+    final nom = SanitizationUtils.sanitizeName(data['nom'] ?? '');
+    final prenom = SanitizationUtils.sanitizeName(data['prenom'] ?? '');
+    final email = SanitizationUtils.sanitizeEmail(data['email'] ?? '');
+    final telephone = SanitizationUtils.sanitizePhoneNumber(data['telephone'] ?? '');
+    final linkedin = data['linkedin'] != null ? SanitizationUtils.sanitizeUrl(data['linkedin']) : null;
+
     return Prospect(
       id: id,
-      nom: data['nom'] ?? '',
-      prenom: data['prenom'] ?? '',
-      email: data['email'] ?? '',
-      telephone: data['telephone'] ?? '',
-      linkedin: data['linkedin'],
+      nom: nom,
+      prenom: prenom,
+      email: email,
+      telephone: telephone,
+      linkedin: linkedin,
       dateCreation: (data['dateCreation'] as Timestamp?)?.toDate() ?? DateTime.now(),
       dateModification: (data['dateModification'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );

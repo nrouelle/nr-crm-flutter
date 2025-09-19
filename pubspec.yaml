@@ -49,6 +49,10 @@ dependencies:
   # URL launcher for phone/email
   url_launcher: ^6.2.1
 
+  # Form validation and formatting
+  form_validator: ^2.1.1
+  mask_text_input_formatter: ^2.5.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
