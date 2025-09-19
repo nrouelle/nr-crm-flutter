@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/prospect.dart';
 import '../providers/auth_provider.dart';
 import '../providers/prospects_provider.dart';
+import '../widgets/prospect_card.dart';
+import '../widgets/empty_state_widget.dart';
+import '../widgets/loading_widget.dart';
+import '../widgets/error_widget.dart';
 import 'add_prospect_page.dart';
 import 'prospect_detail_page.dart';
 
@@ -23,6 +28,93 @@ class _ProspectsPageState extends ConsumerState<ProspectsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(prospectsNotifierProvider.notifier).initialiserDonneesTest();
     });
+  }
+
+  // Actions pour les cartes prospects
+  void _callProspect(String phoneNumber) async {
+    final uri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Impossible d\'appeler $phoneNumber'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _emailProspect(String email) async {
+    final uri = Uri(scheme: 'mailto', path: email);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Impossible d\'ouvrir l\'email pour $email'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _editProspect(Prospect prospect) {
+    // TODO: Naviguer vers la page d'édition
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Fonctionnalité d\'édition à implémenter'),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
+  void _deleteProspect(Prospect prospect) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer le prospect'),
+        content: Text(
+          'Êtes-vous sûr de vouloir supprimer ${prospect.nomComplet} ?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await ref
+                  .read(prospectsNotifierProvider.notifier)
+                  .supprimerProspect(prospect.id!);
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      success
+                        ? '${prospect.nomComplet} supprimé avec succès'
+                        : 'Erreur lors de la suppression',
+                    ),
+                    backgroundColor: success ? Colors.green : Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -61,31 +153,15 @@ class _ProspectsPageState extends ConsumerState<ProspectsPage> {
                   return prospectsAsync.when(
                     data: (prospects) {
                       if (prospects.isEmpty) {
-                        return const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.people_outline,
-                                size: 64,
-                                color: Colors.grey,
+                        return EmptyStateWidget.prospects(
+                          onAddProspect: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AddProspectPage(),
                               ),
-                              SizedBox(height: 16),
-                              Text(
-                                'Aucun prospect trouvé',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Ajoutez votre premier prospect',
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         );
                       }
 
@@ -93,73 +169,33 @@ class _ProspectsPageState extends ConsumerState<ProspectsPage> {
                         itemCount: prospects.length,
                         itemBuilder: (context, index) {
                           final prospect = prospects[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: const Color(0xFF219ebc),
-                                child: Text(
-                                  prospect.initiales,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
+                          return ProspectCard(
+                            prospect: prospect,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ProspectDetailPage(
+                                    prospect: prospect,
                                   ),
                                 ),
-                              ),
-                              title: Text(
-                                prospect.nomComplet,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(prospect.email),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    prospect.telephone,
-                                    style: TextStyle(color: Colors.grey[600]),
-                                  ),
-                                ],
-                              ),
-                              isThreeLine: true,
-                              trailing: const Icon(Icons.arrow_forward_ios),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ProspectDetailPage(
-                                      prospect: prospect,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                              );
+                            },
+                            onCall: () => _callProspect(prospect.telephone),
+                            onEmail: () => _emailProspect(prospect.email),
+                            onEdit: () => _editProspect(prospect),
+                            onDelete: () => _deleteProspect(prospect),
                           );
                         },
                       );
                     },
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                    loading: () => LoadingWidget.prospects(),
                     error: (error, stackTrace) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.error, size: 64, color: Colors.red),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Erreur lors du chargement',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              error.toString(),
-                              style: TextStyle(color: Colors.grey[600]),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
+                      return CustomErrorWidget.prospects(
+                        errorMessage: error.toString(),
+                        onRetry: () {
+                          ref.invalidate(prospectsStreamProvider);
+                        },
                       );
                     },
                   );

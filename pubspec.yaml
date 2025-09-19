@@ -46,6 +46,9 @@ dependencies:
   # State management
   flutter_riverpod: ^2.4.0
 
+  # URL launcher for phone/email
+  url_launcher: ^6.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
