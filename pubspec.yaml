@@ -53,6 +53,10 @@ dependencies:
   form_validator: ^2.1.1
   mask_text_input_formatter: ^2.5.0
 
+  # Hooks for better state management
+  flutter_hooks: ^0.20.3
+  hooks_riverpod: ^2.4.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

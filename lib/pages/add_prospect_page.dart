@@ -1,62 +1,48 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import '../models/prospect.dart';
 import '../providers/prospects_provider.dart';
 import '../utils/validation_utils.dart';
+import '../widgets/custom_text_form_field.dart';
 
-class AddProspectPage extends ConsumerStatefulWidget {
+class AddProspectPage extends HookConsumerWidget {
   const AddProspectPage({super.key});
 
   @override
-  ConsumerState<AddProspectPage> createState() => _AddProspectPageState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Utilisation des hooks pour les contrôleurs (dispose automatique)
+    final formKey = useMemoized(() => GlobalKey<FormState>());
+    final nomController = useTextEditingController();
+    final prenomController = useTextEditingController();
+    final emailController = useTextEditingController();
+    final telephoneController = useTextEditingController();
+    final linkedinController = useTextEditingController();
 
-class _AddProspectPageState extends ConsumerState<AddProspectPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _nomController = TextEditingController();
-  final _prenomController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _telephoneController = TextEditingController();
-  final _linkedinController = TextEditingController();
-
-  // Formatters pour la saisie
-  late final MaskTextInputFormatter _phoneFormatter;
-
-  @override
-  void initState() {
-    super.initState();
     // Formatter pour les numéros de téléphone français
-    _phoneFormatter = MaskTextInputFormatter(
-      mask: '## ## ## ## ##',
-      filter: {'#': RegExp(r'[0-9]')},
-      type: MaskAutoCompletionType.lazy,
+    final phoneFormatter = useMemoized(
+      () => MaskTextInputFormatter(
+        mask: '## ## ## ## ##',
+        filter: {'#': RegExp(r'[0-9]')},
+        type: MaskAutoCompletionType.lazy,
+      ),
     );
-  }
 
-  @override
-  void dispose() {
-    _nomController.dispose();
-    _prenomController.dispose();
-    _emailController.dispose();
-    _telephoneController.dispose();
-    _linkedinController.dispose();
-    super.dispose();
-  }
+    // Fonction de sauvegarde avec gestion d'erreurs améliorée
+    Future<void> saveProspect() async {
+      if (!formKey.currentState!.validate()) return;
 
-  Future<void> _saveProspect() async {
-    if (_formKey.currentState!.validate()) {
       try {
         // Utiliser le factory sécurisé avec validation et sanitisation
         final prospect = Prospect.create(
-          nom: _nomController.text,
-          prenom: _prenomController.text,
-          email: _emailController.text,
-          telephone: _telephoneController.text,
-          linkedin: _linkedinController.text.trim().isEmpty
+          nom: nomController.text,
+          prenom: prenomController.text,
+          email: emailController.text,
+          telephone: telephoneController.text,
+          linkedin: linkedinController.text.trim().isEmpty
               ? null
-              : _linkedinController.text,
+              : linkedinController.text,
         );
 
         // Utiliser Riverpod pour ajouter le prospect
@@ -64,7 +50,7 @@ class _AddProspectPageState extends ConsumerState<AddProspectPage> {
             .read(prospectsNotifierProvider.notifier)
             .ajouterProspect(prospect);
 
-        if (mounted) {
+        if (context.mounted) {
           if (success != null) {
             Navigator.pop(context, true);
             ScaffoldMessenger.of(context).showSnackBar(
@@ -72,6 +58,13 @@ class _AddProspectPageState extends ConsumerState<AddProspectPage> {
                 content: Text('${prospect.nomComplet} ajouté avec succès'),
                 backgroundColor: Colors.green,
                 behavior: SnackBarBehavior.floating,
+                action: SnackBarAction(
+                  label: 'Voir',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    // Future: naviguer vers les détails du prospect
+                  },
+                ),
               ),
             );
           } else {
@@ -85,163 +78,97 @@ class _AddProspectPageState extends ConsumerState<AddProspectPage> {
           }
         }
       } catch (e) {
-        if (mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Erreur lors de l\'ajout: $e'),
+              content: Text('Erreur : ${e.toString()}'),
               backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
             ),
           );
         }
       }
     }
-  }
 
-  @override
-  Widget build(BuildContext context) {
+    // Auto-complétion intelligente pour l'email
+    void handleEmailChange(String value) {
+      if (value != value.toLowerCase()) {
+        emailController.value = TextEditingValue(
+          text: value.toLowerCase(),
+          selection: emailController.selection,
+        );
+      }
+    }
+
+    // Auto-complétion pour LinkedIn
+    void handleLinkedInChange(String value) {
+      if (value.isNotEmpty &&
+          !value.startsWith('http') &&
+          !value.startsWith('linkedin.com')) {
+        if (value.startsWith('linkedin.com') ||
+            value.startsWith('www.linkedin.com')) {
+          linkedinController.value = TextEditingValue(
+            text: 'https://$value',
+            selection: TextSelection.collapsed(offset: 'https://$value'.length),
+          );
+        }
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Ajouter un Prospect'),
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
-          key: _formKey,
+          key: formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 16),
 
               // Nom
-              TextFormField(
-                controller: _nomController,
-                decoration: InputDecoration(
-                  labelText: 'Nom *',
-                  prefixIcon: const Icon(Icons.person_outline),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  helperText: 'Uniquement lettres, espaces, tirets et apostrophes',
-                ),
-                textCapitalization: TextCapitalization.words,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r"[a-zA-ZÀ-ÿ\s\-\.']")),
-                  LengthLimitingTextInputFormatter(50),
-                ],
+              CustomTextFormField.name(
+                controller: nomController,
+                label: 'Nom',
                 validator: (value) => ValidationUtils.validateName(value, 'nom'),
               ),
               const SizedBox(height: 16),
 
               // Prénom
-              TextFormField(
-                controller: _prenomController,
-                decoration: InputDecoration(
-                  labelText: 'Prénom *',
-                  prefixIcon: const Icon(Icons.person_outline),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  helperText: 'Uniquement lettres, espaces, tirets et apostrophes',
-                ),
-                textCapitalization: TextCapitalization.words,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r"[a-zA-ZÀ-ÿ\s\-\.']")),
-                  LengthLimitingTextInputFormatter(50),
-                ],
+              CustomTextFormField.name(
+                controller: prenomController,
+                label: 'Prénom',
                 validator: (value) => ValidationUtils.validateName(value, 'prénom'),
               ),
               const SizedBox(height: 16),
 
               // Email
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: 'Email *',
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  helperText: 'Format: nom@domaine.com',
-                ),
-                textInputAction: TextInputAction.next,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[a-z0-9@._\-]')),
-                  LengthLimitingTextInputFormatter(100),
-                ],
+              CustomTextFormField.email(
+                controller: emailController,
                 validator: ValidationUtils.validateEmail,
-                onChanged: (value) {
-                  // Convertir automatiquement en minuscules
-                  if (value != value.toLowerCase()) {
-                    _emailController.value = TextEditingValue(
-                      text: value.toLowerCase(),
-                      selection: _emailController.selection,
-                    );
-                  }
-                },
+                onChanged: handleEmailChange,
               ),
               const SizedBox(height: 16),
 
               // Téléphone
-              TextFormField(
-                controller: _telephoneController,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: 'Téléphone *',
-                  prefixIcon: const Icon(Icons.phone_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  helperText: 'Format: 06 12 34 56 78 ou +33 6 12 34 56 78',
-                ),
-                textInputAction: TextInputAction.next,
-                inputFormatters: [
-                  _phoneFormatter,
-                  LengthLimitingTextInputFormatter(20),
-                ],
+              CustomTextFormField.phone(
+                controller: telephoneController,
+                phoneFormatters: [phoneFormatter],
                 validator: ValidationUtils.validatePhone,
               ),
               const SizedBox(height: 16),
 
               // LinkedIn
-              TextFormField(
-                controller: _linkedinController,
-                keyboardType: TextInputType.url,
-                decoration: InputDecoration(
-                  labelText: 'Profil LinkedIn (optionnel)',
-                  prefixIcon: const Icon(Icons.link_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  hintText: 'https://linkedin.com/in/nom-prenom',
-                  helperText: 'URL complète du profil LinkedIn',
-                ),
-                textInputAction: TextInputAction.done,
-                inputFormatters: [
-                  LengthLimitingTextInputFormatter(200),
-                ],
+              CustomTextFormField.url(
+                controller: linkedinController,
+                label: 'Profil LinkedIn (optionnel)',
+                helperText: 'URL complète du profil LinkedIn',
+                hintText: 'https://linkedin.com/in/nom-prenom',
                 validator: ValidationUtils.validateLinkedIn,
-                onChanged: (value) {
-                  // Auto-complétion pour LinkedIn
-                  if (value.isNotEmpty && !value.startsWith('http') && !value.startsWith('linkedin.com')) {
-                    if (value.startsWith('linkedin.com') || value.startsWith('www.linkedin.com')) {
-                      _linkedinController.value = TextEditingValue(
-                        text: 'https://$value',
-                        selection: TextSelection.collapsed(offset: 'https://$value'.length),
-                      );
-                    }
-                  }
-                },
+                onChanged: handleLinkedInChange,
               ),
               const SizedBox(height: 32),
 
@@ -268,7 +195,7 @@ class _AddProspectPageState extends ConsumerState<AddProspectPage> {
                       builder: (context, ref, child) {
                         final isLoading = ref.watch(prospectsNotifierProvider).isLoading;
                         return ElevatedButton(
-                          onPressed: isLoading ? null : _saveProspect,
+                          onPressed: isLoading ? null : saveProspect,
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
